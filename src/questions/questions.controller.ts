@@ -1,37 +1,44 @@
-import { Controller, Get, Req, Post, HttpCode, Param, Query, Body } from '@nestjs/common';
-import { Request } from 'express';
-
-let QUESTIONS = [];
+import { Controller, Get, Post, Put, Body, Param, Patch, Delete } from "@nestjs/common";
+import { QuestionsService } from './questions.service';
+import { Question } from './question.model';
 
 @Controller('questions')
 export class QuestionsController {
-  
-  @Get()
-  findAll(@Req() request: Request): object {
-    return QUESTIONS;
-  }
+    
+    constructor(private readonly questionsService: QuestionsService) {}
 
-  @Post()
-  create(@Body() body): object {
-    let { title, content } = body;
-    QUESTIONS.push({
-      id: QUESTIONS.length + 1,
-      title,
-      content
-    });
-    return QUESTIONS;
-  }
-
-  @Get(':id')
-  findOne(@Param() params): object {
-    let { id } = params;
-    for (let index = 0; index < QUESTIONS.length; index++) {
-      const question = QUESTIONS[index];
-      if (question.id === parseInt(id)) {
-        return question
-      }
+    @Get()
+    getQuestions(): Question[] {
+        return this.questionsService.getQuestions()
     }
-    return {};
-  }
+
+    @Get(':id')
+    getSingleQuestion(
+        @Param('id') questionID: string): Question {
+        return this.questionsService.getSingleQuestion(questionID)    
+    }
+
+    @Post()
+    createNewQuestion(
+        @Body('title') questionTitle: string, 
+        @Body('content') questionContent: string): { id: string } {
+        const newId =  this.questionsService.createNewQuestion(questionTitle, questionContent);
+        return {
+            id: newId
+        };
+    }
+
+    @Patch(':id')
+    updateQuestion(
+        @Param('id') questionID: string,
+        @Body() body: { title: string, content: string }): Question {
+        let { title, content } = body;
+        return this.questionsService.updateQuestion(questionID, title, content)
+    }
+
+    @Delete(':id')
+    deleteQuestion(@Param('id') questionID: string): Question {
+        return this.questionsService.deleteQuestion(questionID);
+    }
 
 }
