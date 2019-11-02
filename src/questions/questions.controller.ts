@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Patch, Delete } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Patch, Delete } from "@nestjs/common";
 import { QuestionsService } from './questions.service';
 import { Question } from './question.model';
 
