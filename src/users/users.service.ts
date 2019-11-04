@@ -9,7 +9,7 @@ export class UsersService {
     constructor(
         @InjectModel('User') private readonly userModel: Model<User>
     ){}
-    
+     
     async findAll(): Promise<User[]> {
         return await this.userModel.find().exec();
     }
@@ -41,7 +41,7 @@ export class UsersService {
     }
 
     async createNewUser(newUser: CreateUserDto): Promise<User> {
-        try {
+        try { 
             if (!newUser.password) {
                 throw new UnprocessableEntityException('Password required');
             }

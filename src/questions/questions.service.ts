@@ -1,60 +1,59 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { Question } from './question.model';
+import { Injectable, NotFoundException, HttpException, HttpStatus } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from 'mongoose';
+import { Question } from './question.interface';
+import { CreateQuestionDto } from './create-question.dto';
+import * as mongoose from 'mongoose';
+
 
 @Injectable()
 export class QuestionsService {
     
-    private questions: Question[] = [];
+    constructor(
+        @InjectModel('Question') private readonly questionModel: Model<Question>
+    ){}
 
-    createNewQuestion(title: string, content: string): string {
-        const ID = Math.random().toString();
-        const newQuestion = new Question(ID, title, content);
-        this.questions.push(newQuestion);
-        return ID;
+
+
+
+    async getAllQuestions(): Promise<Question[]> {
+        return await this.questionModel.find().exec();
     }
 
-    getQuestions(): Question[] {
-        return [...this.questions]
-    }
 
-    private findQuestion(questionID: string): Question {
-        const question = this.questions.find(question => question.id === questionID);
+    async getSingleQuestion(userId: string): Promise<Question> {
+        let question;
+        try {
+            question =  await this.questionModel.findOne({ _id: userId })
+        } catch (error) {
+            throw new HttpException(error._message, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+            
         if (!question) {
-            throw new NotFoundException('question not found');
+            throw new NotFoundException('Question not found')
         }
         return question;
     }
 
-    private findQuestionIndex(questionID: string): number {
-        const questionIndex = this.questions.findIndex(question => question.id === questionID);
-        if (questionIndex === -1) {
-            throw new NotFoundException('question not found');
-        }
-        return questionIndex;
-    }
-
-    getSingleQuestion(questionID: string): Question {
-        const question = this.findQuestion(questionID);
-        return {...question};
-    }
-
-    updateQuestion(
-        questionID: string, 
-        title: string, 
-        content: string): Question {
-
-        const question = this.findQuestion(questionID);
-        question['title'] = title;
-        question['content'] = content;
-        return {...question};
     
-    }
+    async createNewQuestion(newQuestion: CreateQuestionDto, request) {
+        try {
+            
+            const newQuestionParams: CreateQuestionDto = {
+                title: newQuestion.title,
+                content: newQuestion.content,
+                createdBy: mongoose.Types.ObjectId(request.user.userid)
+            }
+            const createdQuestion = new this.questionModel(newQuestionParams)
+            return await createdQuestion.save()
 
-    deleteQuestion(questionID: string): Question {
-        const questionIndex = this.findQuestionIndex(questionID);
-        const question = this.questions[questionIndex];
-        this.questions.splice(questionIndex, 1);
-        return question;
+        } catch (error) {
+            console.log(error)
+            if (error.name === 'ValidationError') {
+                const message = error._message;
+                throw new HttpException(message, HttpStatus.UNPROCESSABLE_ENTITY)
+            }
+        }
     }
 
 

@@ -1,44 +1,36 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Req } from "@nestjs/common";
 import { QuestionsService } from './questions.service';
-import { Question } from './question.model';
+import { Question } from './question.interface';
+import { AuthGuard } from "@nestjs/passport";
+import { CreateQuestionDto } from './create-question.dto';
 
 @Controller('questions')
 export class QuestionsController {
     
     constructor(private readonly questionsService: QuestionsService) {}
 
-    @Get()
-    getQuestions(): Question[] {
-        return this.questionsService.getQuestions()
-    }
-
-    @Get(':id')
-    getSingleQuestion(
-        @Param('id') questionID: string): Question {
-        return this.questionsService.getSingleQuestion(questionID)    
-    }
-
+    @UseGuards(AuthGuard('jwt'))
     @Post()
-    createNewQuestion(
-        @Body('title') questionTitle: string, 
-        @Body('content') questionContent: string): { id: string } {
-        const newId =  this.questionsService.createNewQuestion(questionTitle, questionContent);
-        return {
-            id: newId
-        };
+    async createNewQuestion(
+        @Body() body: CreateQuestionDto,
+        @Req() request
+    ) {
+        return await this.questionsService.createNewQuestion(body, request);
     }
 
-    @Patch(':id')
-    updateQuestion(
-        @Param('id') questionID: string,
-        @Body() body: { title: string, content: string }): Question {
-        let { title, content } = body;
-        return this.questionsService.updateQuestion(questionID, title, content)
+
+    @UseGuards(AuthGuard('jwt'))
+    @Get()
+    async getAllQuestions(): Promise<Question[]> {
+        return await this.questionsService.getAllQuestions()
     }
 
-    @Delete(':id')
-    deleteQuestion(@Param('id') questionID: string): Question {
-        return this.questionsService.deleteQuestion(questionID);
+    @UseGuards(AuthGuard('jwt'))
+    @Get(':id')
+    async getSingleQuestion(
+        @Param('id') userId: string
+    ): Promise<Question> {
+        return await this.questionsService.getSingleQuestion(userId);
     }
 
 }
