@@ -36,38 +36,142 @@ export class QuestionsController {
         @Body() body: { content: string },
         @Req() request
     ) {
-        return await this.questionsService.createQuestionComment(questionId, body, request);
+        let newComment = await this.questionsService.createQuestionComment(questionId, body, request);
+        let { _id, content, createdAt, updatedAt, createdBy } 
+                = newComment;
+        return {
+            id: _id,
+            content, createdAt, updatedAt,
+            createdBy: {
+                id: createdBy._id,
+                username: createdBy.username,
+                email: createdBy.email
+            }
+        } 
     }
 
 
     @UseGuards(AuthGuard('jwt'))
     @Get()
-    async getAllQuestions(): Promise<Question[]> {
-        return await this.questionsService.getAllQuestions()
+    async getAllQuestions() {
+        let questions = await this.questionsService.getAllQuestions();
+
+        return questions.map(question => {
+            let { _id, title, content, createdAt, updatedAt, createdBy, comments } 
+                = question;
+                
+            if (comments) {
+                comments = comments.map(comment => {
+                    let { _id, content, createdAt, updatedAt, createdBy } = comment;
+                    return {
+                        id: _id,
+                        content, createdAt, updatedAt,
+                        createdBy: {
+                            id: createdBy._id,
+                            username: createdBy.username,
+                            email: createdBy.email
+                        }
+                    }
+                })    
+            }    
+                
+            return {
+                id: _id,
+                title, content, createdAt, updatedAt,
+                comments,
+                createdBy: {
+                    id: createdBy._id,
+                    username: createdBy.username,
+                    email: createdBy.email
+                }
+            }
+        })
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Get(':id')
     async getSingleQuestion(
         @Param('id') userId: string
-    ): Promise<Question> {
-        return await this.questionsService.getSingleQuestion(userId);
+    ) {
+        let question =  await this.questionsService.getSingleQuestion(userId);
+        let { _id, title, content, createdAt, updatedAt, createdBy, comments } 
+            = question;
+            
+        if (comments) {
+            comments = comments.map(comment => {
+                let { _id, content, createdAt, updatedAt, createdBy } = comment;
+                return {
+                    id: _id,
+                    content, createdAt, updatedAt,
+                    createdBy: {
+                        id: createdBy._id,
+                        username: createdBy.username,
+                        email: createdBy.email
+                    }
+                }
+            })    
+        } 
+
+        return {
+            id: _id,
+            title, content, createdAt, updatedAt,
+            createdBy: {
+                id: createdBy._id,
+                username: createdBy.username,
+                email: createdBy.email
+            },
+            comments
+        }
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Get(':questionId/answers')
     async getAllAnswers(
         @Param('questionId') questionId: string 
-    ): Promise<Answer[]> {
-        return await this.questionsService.getAllAnswers(questionId)
+    ) {
+        let answers = await this.questionsService.getAllAnswers(questionId)
+        return answers.map(answer => {
+            let { _id, content, createdAt, updatedAt, createdBy, questionId } 
+                = answer;
+            return {
+                id: _id,
+                content, createdAt, updatedAt,
+                createdBy: {
+                    id: createdBy._id,
+                    username: createdBy.username,
+                    email: createdBy.email
+                },
+                question: {
+                    id: questionId._id,
+                    title: questionId.title
+                }
+            }   
+        });
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Get(':questionId/comments')
     async getAllQuestionComments(
         @Param('questionId') questionId: string 
-    ): Promise<Answer[]> {
-        return await this.questionsService.getAllQuestionComments(questionId)
+    ) {
+        let comments = await this.questionsService.getAllQuestionComments(questionId)
+        return comments.map(comment => {
+            let { _id, content, createdAt, updatedAt, createdBy, questionId } 
+                = comment;
+            return {
+                id: _id,
+                content, createdAt, updatedAt,
+                createdBy: {
+                    id: createdBy._id,
+                    username: createdBy.username,
+                    email: createdBy.email
+                },
+                question: {
+                    id: questionId._id,
+                    title: questionId.title
+                }
+            } 
+        })
     }
 
 }

@@ -41,3 +41,7 @@ UserSchema.methods.isValidPassword = function(password) {
     var hash = crypto.pbkdf2Sync(password, this.salt, ITERATIONS, KEYLEN, DIGEST).toString('hex');
     return this.hash === hash;
 }
+
+UserSchema.virtual('fullName').get(function() {
+    return `NAME: ${this.username}`;
+})

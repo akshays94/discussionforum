@@ -1,14 +1,6 @@
 import * as mongoose from 'mongoose';
 import * as uniqueValidator from 'mongoose-unique-validator';
 
-export const QuestionCommentSchema = new mongoose.Schema({
-    commentId: mongoose.Schema.Types.ObjectId,
-    content: {
-        type: String,
-        required: [true, 'question comment is mandatory'],
-    }
-})
-
 export const QuestionSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -17,8 +9,16 @@ export const QuestionSchema = new mongoose.Schema({
         required: [true, 'question title cannot be blank']
     },
     content: String,
-    createdBy: mongoose.Schema.Types.ObjectId,
-    comments: [QuestionCommentSchema]
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    comments: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'QuestionComment' 
+        }
+    ]
 }, {
     timestamps: true // creates: createdAt and updatedAt
 })

@@ -3,4 +3,6 @@ export interface Question {
     title: string;
     content: string;
     createdBy: string;
+
+    akshay: string;
 }

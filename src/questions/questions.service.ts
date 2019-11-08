@@ -4,8 +4,10 @@ import { Model } from 'mongoose';
 import { Question } from './question.interface';
 import { Answer } from './answer.interface';
 import { QuestionComment } from './question-comment.interface';
+import { User } from '../users/user.interface';
 import { CreateQuestionDto } from './create-question.dto';
 import * as mongoose from 'mongoose';
+import { resolve } from "url";
 
 
 @Injectable()
@@ -15,22 +17,32 @@ export class QuestionsService {
         @InjectModel('Question') private readonly questionModel: Model<Question>,
         @InjectModel('Answer') private readonly answerModel: Model<Answer>,
         @InjectModel('QuestionComment') private readonly questionCommentModel: Model<QuestionComment>,
+        @InjectModel('User') private readonly userModel: Model<User>
     ){}
 
 
-    async getAllQuestions(): Promise<Question[]> {
-        return await this.questionModel.find().exec();
+    async getAllQuestions() {
+        return await 
+            this.questionModel
+                .find()
+                .populate('createdBy')
+                .populate('comments')
+                .lean();
+
     }
 
 
-    async getSingleQuestion(userId: string): Promise<Question> {
+    async getSingleQuestion(userId: string) {
         let question;
         try {
-            question =  await this.questionModel.findOne({ _id: userId })
+            question =  await this.questionModel
+                            .findOne({ _id: userId })
+                            .populate('createdBy')
+                            .populate('comments')
+                            .lean()
         } catch (error) {
             throw new HttpException(error._message, HttpStatus.INTERNAL_SERVER_ERROR)
-        }
-            
+        }            
         if (!question) {
             throw new NotFoundException('Question not found')
         }
@@ -40,11 +52,15 @@ export class QuestionsService {
     
     async createNewQuestion(newQuestion: CreateQuestionDto, request) {
         try {
-            
+
+            let createdBy = await this.userModel.findOne({
+                _id: request.user.userId
+            })
+
             const newQuestionParams: CreateQuestionDto = {
                 title: newQuestion.title,
                 content: newQuestion.content,
-                createdBy: mongoose.Types.ObjectId(request.user.userid)
+                createdBy: createdBy._id
             }
             const createdQuestion = new this.questionModel(newQuestionParams)
             return await createdQuestion.save()
@@ -64,22 +80,15 @@ export class QuestionsService {
         request
     ) {
 
-        const isValidId = mongoose.Types.ObjectId.isValid(questionId);
-        if (!isValidId) {
-            throw new UnprocessableEntityException('Invalid question id')
-        }
-
-        const questionCount =  await this.questionModel.countDocuments({ _id: questionId })
-        if (questionCount === 0) {
-            throw new NotFoundException('question id not found')
-        }
+        let question = await this.questionModel.findOne({ _id: questionId })
+        let createdBy = await this.userModel.findOne({ _id: request.user.userId })
 
         try {
 
             const newAnswerParams = {
-                questionId: mongoose.Types.ObjectId(questionId),
+                questionId: question._id,
                 content: newAnswer.content,
-                createdBy: mongoose.Types.ObjectId(request.user.userId)
+                createdBy: createdBy._id
             }
             const createdAnswer = new this.answerModel(newAnswerParams)
             return await createdAnswer.save()
@@ -97,20 +106,15 @@ export class QuestionsService {
 
     async getAllAnswers(
         questionId: string
-    ): Promise<Answer[]> {
-        const isValidId = mongoose.Types.ObjectId.isValid(questionId);
-        if (!isValidId) {
-            throw new UnprocessableEntityException('Invalid question id')
-        }
+    ) {
+        let question = await this.questionModel.findOne({ _id: questionId })
 
-        const questionCount =  await this.questionModel.countDocuments({ _id: questionId })
-        if (questionCount === 0) {
-            throw new NotFoundException('question id not found')
-        }
-
-        return await this.answerModel.find({
-            questionId: questionId
-        }).exec();
+        return await 
+            this.answerModel
+                .find({ questionId: question._id})
+                .populate('createdBy')
+                .populate('questionId')
+                .lean();
     }
 
     async createQuestionComment(
@@ -119,36 +123,24 @@ export class QuestionsService {
         request
     ) {
 
-        const isValidId = mongoose.Types.ObjectId.isValid(questionId);
-        if (!isValidId) {
-            throw new UnprocessableEntityException('Invalid question id')
-        }
-
-        const questionCount =  await this.questionModel.countDocuments({ _id: questionId })
-        if (questionCount === 0) {
-            throw new NotFoundException('question id not found')
-        }
+        let question = await this.questionModel.findOne({ _id: questionId })
+        let createdBy = await this.userModel.findOne({ _id: request.user.userId })
 
         try {
 
             const newCommentParams = {
-                questionId: mongoose.Types.ObjectId(questionId),
+                questionId: question._id,
                 content: newComment.content,
-                createdBy: mongoose.Types.ObjectId(request.user.userId)
+                createdBy: createdBy._id
             }
-            const createdQuestionComment = new this.questionCommentModel(newCommentParams);
-            await createdQuestionComment.save();
-            
-            const newQuestionCommentItem = {
-                commentId: createdQuestionComment._id,
-                content: createdQuestionComment.content
-            }
-            await this.questionModel.update(
-                { _id: questionId },
-                { $push: { comments: newQuestionCommentItem } }
-            )
+            let createdQuestionComment = new this.questionCommentModel(newCommentParams);
+            createdQuestionComment = await createdQuestionComment.save();
 
+            question.comments.push(createdQuestionComment);
+            question.save();
+            
             return createdQuestionComment;
+
         } catch (error) {
             
             console.log(error);
@@ -162,20 +154,14 @@ export class QuestionsService {
 
     async getAllQuestionComments(
         questionId: string
-    ): Promise<Answer[]> {
-        const isValidId = mongoose.Types.ObjectId.isValid(questionId);
-        if (!isValidId) {
-            throw new UnprocessableEntityException('Invalid question id')
-        }
+    ) {
+        let question = await this.questionModel.findOne({ _id: questionId })
 
-        const questionCount =  await this.questionModel.countDocuments({ _id: questionId })
-        if (questionCount === 0) {
-            throw new NotFoundException('question id not found')
-        }
-
-        return await this.questionCommentModel.find({
-            questionId: questionId
-        }).exec();
+        return await this.questionCommentModel
+                        .find({ questionId: question._id })
+                        .populate('createdBy')
+                        .populate('questionId')
+                        .lean();
     }
 
 

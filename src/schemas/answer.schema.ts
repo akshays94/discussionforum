@@ -3,6 +3,7 @@ import * as mongoose from 'mongoose';
 export const AnswerSchema = new mongoose.Schema({
     questionId: {
         type: mongoose.Schema.Types.ObjectId,
+        ref: 'Question',
         required: [true, 'question ID is mandatory']
     },
     content: {
@@ -13,7 +14,10 @@ export const AnswerSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    createdBy: mongoose.Schema.Types.ObjectId
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }
 }, {
     timestamps: true
 })

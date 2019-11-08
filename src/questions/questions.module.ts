@@ -6,6 +6,7 @@ import { QuestionSchema } from "../schemas/question.schema";
 import { AnswerSchema } from "../schemas/answer.schema";
 import { QuestionCommentSchema } from "../schemas/question-comment.schema";
 import { AnswerCommentSchema } from "../schemas/answer-comment.schema";
+import { UserSchema } from "../schemas/user.schema";
 
 @Module({
     imports: [
@@ -13,7 +14,8 @@ import { AnswerCommentSchema } from "../schemas/answer-comment.schema";
             { name: 'Question', schema: QuestionSchema },
             { name: 'Answer', schema: AnswerSchema },
             { name: 'QuestionComment', schema: QuestionCommentSchema },
-            { name: 'AnswerComment', schema: AnswerCommentSchema }
+            { name: 'AnswerComment', schema: AnswerCommentSchema },
+            { name: 'User', schema: UserSchema }
         ])
     ],
     controllers: [QuestionsController],
